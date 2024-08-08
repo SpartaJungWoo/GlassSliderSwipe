@@ -1,0 +1,54 @@
+name: Unity Android Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        unityVersion: [2022.3.3f1] # Unity 버전을 명시합니다.
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Setup Unity
+      uses: game-ci/unity-builder@v2
+      with:
+        version: ${{ matrix.unityVersion }}
+
+    - name: Activate Unity license
+      run: |
+        echo "Activating Unity license..."
+        /opt/unity/Editor/Unity -logFile -batchmode -nographics -quit \
+          -username "${{ secrets.UNITY_EMAIL }}" \
+          -password "${{ secrets.UNITY_PASSWORD }}"
+
+    - name: Build project for Android
+      uses: game-ci/unity-builder@v2
+      with:
+        targetPlatform: Android
+        unityVersion: ${{ matrix.unityVersion }}
+        projectPath: ./
+        buildName: AndroidBuild
+        buildPath: build
+        androidVersionCode: 1
+
+    - name: Upload build
+      uses: actions/upload-artifact@v2
+      with:
+        name: AndroidBuild
+        path: build/AndroidBuild.apk
+
+    - name: Return Unity license
+      run: |
+        echo "Returning Unity license..."
+        /opt/unity/Editor/Unity -logFile -batchmode -nographics -quit -returnlicense
